@@ -1,5 +1,11 @@
 #!/bin/bash
 
+## check for sudo/root
+if ! [ $(id -u) = 0 ]; then
+  echo "This script must run with sudo, try again..."
+  exit 1
+fi
+
 # Get the username of the user who invoked sudo
 if [ "$SUDO_USER" ]; then
   username="$SUDO_USER"
