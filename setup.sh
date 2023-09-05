@@ -29,28 +29,6 @@ run_nala_fetch() {
     { echo "1 2 3"; echo "y"; } | sudo nala fetch
 }
 
-# Define a function to add the code to a file
-add_code_to_file() {
-  # Define the code to be added
-	code='apt() { 
-  command nala "$@"
-}
-sudo() {
-  if [ "$1" = "apt" ]; then
-    shift
-    command sudo nala "$@"
-  else
-    command sudo "$@"
-  fi
-}'
-  
-  file="$1"
-  # Check if the code is already present at the end of the file
-  if ! tail -n6 "$file" | grep -qF "$code"; then
-    # If not, append the code to the file
-    echo "$code" >> "$file"
-  fi
-}
 
 # This function runs the 'nala' command and installs several needed packages:
 run_nala_installPackages() {
@@ -138,19 +116,40 @@ setup_security() {
     sudo sysctl -a --pattern 'net.ipv4.conf.(eth|wlan)0.arp'
 
     # PREVENT IP SPOOFS
-    cat <<EOF > /etc/host.conf
-order bind,hosts
-multi on
-EOF
+    sudo bash -c 'echo -e "order bind,hosts\nmulti on" > /etc/host.conf'
 
     # Enable fail2ban
     sudo cp jail.local /etc/fail2ban/
+    sudo touch /var/log/auth.log
+    echo "logpath = /var/log/auth.log" | sudo tee -a /etc/fail2ban/jail.d/defaults-debian.conf
+
     sudo systemctl enable fail2ban
+    sudo systemctl daemon-reload
     sudo systemctl start fail2ban
 
     echo "listening ports"
     sudo netstat -tunlp 
 }
+
+setup_lan() {
+
+# Set the static IP address
+echo "auto eth0" >> /etc/network/interfaces
+echo "iface eth0 inet static" >> /etc/network/interfaces
+echo "address 10.10.1.25" >> /etc/network/interfaces
+echo "netmask 255.255.255.0" >> /etc/network/interfaces
+echo "gateway 10.10.1.1" >> /etc/network/interfaces
+
+# Set the primary DNS suffix
+echo "search pfsense.home" >> /etc/resolv.conf
+
+# Set the DNS address
+echo "nameserver 10.10.1.1" >> /etc/resolv.conf
+
+# Set additional settings for a 1Gbps Ethernet LAN
+ethtool -s eth0 speed 1000 duplex full autoneg off
+}
+
 
 # Main script
 echo "Starting script..."
@@ -158,10 +157,6 @@ echo "Starting script..."
 #Install Nala and Fetch best mirrors
 run_nala_install
 run_nala_fetch
-
-# Add the code to both files
-add_code_to_file "$homedir/.bashrc"
-add_code_to_file /root/.bashrc
 
 #Install Additional Packages
 run_nala_installPackages
@@ -178,5 +173,8 @@ run_securitypack
 
 #Hardens Server
 setup_security
+
+#ConfigureLan & Static IP
+setup_lan
 
 echo "Script finished."
