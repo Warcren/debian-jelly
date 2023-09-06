@@ -255,4 +255,4 @@ setup_lan
 run_linux_tweaks
 
 echo "Script finished."
-echo"#Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
+echo "Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
