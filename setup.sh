@@ -16,6 +16,10 @@ fi
 # Get the home directory of the user
 homedir=$(getent passwd "$username" | cut -d: -f6)
 
+#Create Jellyfin Service Account
+sudo useradd -r -s /bin/false jellyfin
+sudo adduser jellyfin sudo
+
 # This function runs the 'sudo apt-get install -y nala' command and install nala on the OS
 run_nala_install() {
 	
@@ -40,7 +44,7 @@ run_nala_installPackages() {
 # This function installs NixPackages:
 run_nix_install() {
     echo "Running Nix Installation using  determinate.systems/nix installation command..."
-    curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
 
 }
 
@@ -73,7 +77,7 @@ configure_jellyfin_account() {
 sudo nala install -y vainfo i965-va-driver-shaders
 
 # Add the Jellyfin user to the video group
-sudo usermod -aG video leo
+sudo usermod -aG video jellyfin
 
 sudo mkdir -p /etc/jellyfin/
 sudo touch /etc/jellyfin/encoding.xml
@@ -103,10 +107,10 @@ echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" >> /etc/jell
 echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" >> /etc/jellyfin/encoding.xml
 
 # Set ownership of Jellyfin files to jellyfin user
-sudo chown -R leo:leo /var/lib/jellyfin
-sudo chown -R leo:leo /etc/jellyfin
-sudo chown -R leo:leo /usr/share/jellyfin
-sudo chown -R leo:leo /var/log/jellyfin
+sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
+sudo chown -R jellyfin:jellyfin /etc/jellyfin
+sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
+sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 }
 
 create_jellyfin_service() {
@@ -116,8 +120,8 @@ Description=Jellyfin Media Server
 After=network.target
 
 [Service]
-User=leo
-Group=leo
+User=jellyfin
+Group=jellyfin
 UMask=002
 
 Type=simple
@@ -245,6 +249,9 @@ setup_lan
 
 #Set additional configuration optios
 run_linux_tweaks
+
+# Remove jellyfin from the sudoers group
+sudo deluser jellyfin sudo
 
 echo "Script finished."
 echo "Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
