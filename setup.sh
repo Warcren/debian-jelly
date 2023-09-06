@@ -53,11 +53,7 @@ run_nixjellyfin() {
   eval "$command1"
   eval "$command2"
 
-# Set ownership of Jellyfin files to jellyfin user
-sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
-sudo chown -R jellyfin:jellyfin /etc/jellyfin
-sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
-sudo chown -R jellyfin:jellyfin /var/log/jellyfin
+
 }
 
 run_securitypack() {
@@ -73,18 +69,11 @@ configure_jellyfin_account() {
 
 #!/bin/bash
 
-#Create Service Account
-sudo useradd -r -s /bin/false jellyfin
-
-# Add jellyfin to the sudoers group
-sudo adduser jellyfin sudo
-
 # Install necessary packages
-
 sudo nala install -y vainfo i965-va-driver-shaders
 
 # Add the Jellyfin user to the video group
-sudo usermod -aG video jellyfin
+sudo usermod -aG video leo
 
 sudo mkdir -p /etc/jellyfin/
 sudo touch /etc/jellyfin/encoding.xml
@@ -113,9 +102,11 @@ echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" >> /etc/jell
 # Allow hwaccel encoder for VAAPI (requires Intel GPU)
 echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" >> /etc/jellyfin/encoding.xml
 
-sudo -u jellyfin bash
-cd /home
-
+# Set ownership of Jellyfin files to jellyfin user
+sudo chown -R jellyfin:leo /var/lib/jellyfin
+sudo chown -R jellyfin:leo /etc/jellyfin
+sudo chown -R jellyfin:leo /usr/share/jellyfin
+sudo chown -R jellyfin:leo /var/log/jellyfin
 }
 
 create_jellyfin_service() {
@@ -125,8 +116,8 @@ Description=Jellyfin Media Server
 After=network.target
 
 [Service]
-User=jellyfin
-Group=jellyfin
+User=leo
+Group=leo
 UMask=002
 
 Type=simple
@@ -220,10 +211,6 @@ sudo update-grub
 #Disable Hyper-Thread Mitigations for more performance on Desktop and use zswap
 echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
 echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
-
-exit
-sudo deluser jellyfin sudo
-
 }
 
 
@@ -237,12 +224,12 @@ run_nala_fetch
 #Install Additional Packages
 run_nala_installPackages
 
-#Create and configure Jellyfin service account
-configure_jellyfin_account
-
 #Sets the Nix Enviroment so it can be used and installs jellyfin
 run_nix_install
 run_nixjellyfin
+
+#Create and configure Jellyfin service account
+configure_jellyfin_account
 
 #Create and start Jellyfin service
 create_jellyfin_service
