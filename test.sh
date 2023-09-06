@@ -145,3 +145,5 @@ run_nala_fetch
 run_nala_installPackages
 run_nix_install
 run_nixjellyfin
+#configure_jellyfin_account
+#create_jellyfin_service
