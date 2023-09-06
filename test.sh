@@ -40,26 +40,21 @@ run_nala_installPackages() {
     sudo nala install -y xz-utils git curl nano debconf
 }
 
-# This function installs NixPackages:
-run_nix_install() {
-    echo "Running Nix Installation using  determinate.systems/nix installation command..."
-    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
-
-}
-
 run_nixjellyfin() {
   # Define the commands to be run
+  sudo mkdir -p /home/jellyfin
+  sudo chown jellyfin:leo /home/jellyfin
+  cd /home/jellyfin
+  
+  sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
   command1=". /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
-  command2="nix profile install nixpkgs#jellyfin"
+  command2="sudo -u jellyfin /nix/var/nix/profiles/default/bin/nix profile install nixpkgs#jellyfin profile install nixpkgs#jellyfin"
 
   # Run the commands
   eval "$command1"
-  sudo mkdir -p /home/jellyfin
-  sudo chown jellyfin /home/jellyfin
   sudo -u jellyfin bash
-  cd /home/jellyfin
   eval "$command2"
-  exit
+
 }
 
 configure_jellyfin_account() {
@@ -118,7 +113,7 @@ Group=jellyfin
 UMask=002
 
 Type=simple
-ExecStart=/nix/var/nix/profiles/default/bin/jellyfin
+ExecStart=/home/jellyfin/.nix-profile/bin/jellyfin
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
@@ -143,7 +138,6 @@ WantedBy=multi-user.target'
 run_nala_install
 run_nala_fetch
 run_nala_installPackages
-run_nix_install
 run_nixjellyfin
 #configure_jellyfin_account
 #create_jellyfin_service
