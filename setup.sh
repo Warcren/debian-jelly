@@ -34,7 +34,7 @@ run_nala_fetch() {
 # This function runs the 'nala' command and installs several needed packages:
 run_nala_installPackages() {
     echo "Running 'sudo nala install -y xz-utils git curl nano debconf' command..."
-    sudo nala install -y xz-utils git curl nano debconf acl
+    sudo nala install -y xz-utils git curl nano debconf
 }
 
 # This function installs NixPackages:
@@ -103,10 +103,10 @@ echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" >> /etc/jell
 echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" >> /etc/jellyfin/encoding.xml
 
 # Set ownership of Jellyfin files to jellyfin user
-sudo chown -R jellyfin:leo /var/lib/jellyfin
-sudo chown -R jellyfin:leo /etc/jellyfin
-sudo chown -R jellyfin:leo /usr/share/jellyfin
-sudo chown -R jellyfin:leo /var/log/jellyfin
+sudo chown -R leo:leo /var/lib/jellyfin
+sudo chown -R leo:leo /etc/jellyfin
+sudo chown -R leo:leo /usr/share/jellyfin
+sudo chown -R leo:leo /var/log/jellyfin
 }
 
 create_jellyfin_service() {
