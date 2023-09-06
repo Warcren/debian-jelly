@@ -52,6 +52,12 @@ run_nixjellyfin() {
   # Run the commands
   eval "$command1"
   eval "$command2"
+
+# Set ownership of Jellyfin files to jellyfin user
+sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
+sudo chown -R jellyfin:jellyfin /etc/jellyfin
+sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
+sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 }
 
 run_securitypack() {
@@ -106,12 +112,6 @@ echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" >> /etc/jell
 
 # Allow hwaccel encoder for VAAPI (requires Intel GPU)
 echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" >> /etc/jellyfin/encoding.xml
-
-# Set ownership of Jellyfin files to jellyfin user
-sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
-sudo chown -R jellyfin:jellyfin /etc/jellyfin
-sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
-sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 
 sudo -u jellyfin bash
 cd /home
