@@ -34,7 +34,7 @@ run_nala_fetch() {
 # This function runs the 'nala' command and installs several needed packages:
 run_nala_installPackages() {
     echo "Running 'sudo nala install -y xz-utils git curl nano debconf' command..."
-    sudo nala install -y xz-utils git curl nano debconf
+    sudo nala install -y xz-utils git curl nano debconf acl
 }
 
 # This function installs NixPackages:
@@ -63,12 +63,15 @@ run_securitypack() {
 }
 
 
-create_jellyfin_account() {
+configure_jellyfin_account() {
 
 #!/bin/bash
 
-# Create the jellyfin user
+#Create Service Account
 sudo useradd -r -s /bin/false jellyfin
+
+# Add jellyfin to the sudoers group
+sudo adduser jellyfin sudo
 
 # Install necessary packages
 
@@ -110,9 +113,8 @@ sudo chown -R jellyfin:jellyfin /etc/jellyfin
 sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
 sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 
-# Restart the Jellyfin service
-sudo systemctl restart jellyfin
-
+sudo -u jellyfin bash
+cd /home
 
 }
 
@@ -219,6 +221,9 @@ sudo update-grub
 echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
 echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
 
+exit
+sudo deluser jellyfin sudo
+
 }
 
 
@@ -231,13 +236,13 @@ run_nala_fetch
 
 #Install Additional Packages
 run_nala_installPackages
-run_nix_install
-
-#Sets the Nix Enviroment so it can be used and installs jellyfin
-run_nixjellyfin
 
 #Create and configure Jellyfin service account
-create_jellyfin_account
+configure_jellyfin_account
+
+#Sets the Nix Enviroment so it can be used and installs jellyfin
+run_nix_install
+run_nixjellyfin
 
 #Create and start Jellyfin service
 create_jellyfin_service
