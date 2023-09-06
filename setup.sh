@@ -20,6 +20,7 @@ homedir=$(getent passwd "$username" | cut -d: -f6)
 run_nala_install() {
 	
     echo "Running 'sudo apt-get install -y nala' command..."
+    sudo apt update && sudo apt upgrade
     sudo apt-get install -y nala
 }
 
@@ -61,6 +62,60 @@ run_securitypack() {
   eval "$command1"
 }
 
+
+create_jellyfin_account() {
+
+#!/bin/bash
+
+# Create the jellyfin user
+sudo useradd -r -s /bin/false jellyfin
+
+# Install necessary packages
+
+sudo nala install -y vainfo i965-va-driver-shaders
+
+# Add the Jellyfin user to the video group
+sudo usermod -aG video jellyfin
+
+sudo mkdir -p /etc/jellyfin/
+sudo touch /etc/jellyfin/encoding.xml
+
+# Enable VAAPI hardware acceleration for Jellyfin (requires Intel GPU)
+echo "hardwareAcceleration.enableVAAPI = true" >> /etc/jellyfin/encoding.xml
+
+# Define the device path for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" >> /etc/jellyfin/encoding.xml
+
+# Define the driver type for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" >> /etc/jellyfin/encoding.xml
+
+# Drop advanced subtitles for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" >> /etc/jellyfin/encoding.xml
+
+# Define the output format for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" >> /etc/jellyfin/encoding.xml
+
+# Allow hwaccel transcoding for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" >> /etc/jellyfin/encoding.xml
+
+# Allow hwaccel decoder for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" >> /etc/jellyfin/encoding.xml
+
+# Allow hwaccel encoder for VAAPI (requires Intel GPU)
+echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" >> /etc/jellyfin/encoding.xml
+
+# Set ownership of Jellyfin files to jellyfin user
+sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
+sudo chown -R jellyfin:jellyfin /etc/jellyfin
+sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
+sudo chown -R jellyfin:jellyfin /var/log/jellyfin
+
+# Restart the Jellyfin service
+sudo systemctl restart jellyfin
+
+
+}
+
 create_jellyfin_service() {
   # Define the service code
   service_code='[Unit]
@@ -68,8 +123,8 @@ Description=Jellyfin Media Server
 After=network.target
 
 [Service]
-User=root
-Group=root
+User=jellyfin
+Group=jellyfin
 UMask=002
 
 Type=simple
@@ -85,13 +140,13 @@ WantedBy=multi-user.target'
   echo "$service_code" > /etc/systemd/system/jellyfin.service
 
   # Reload the systemd daemon to recognize the new service
-  systemctl daemon-reload
+  sudo systemctl daemon-reload
 
   # Enable the service to start automatically at boot
-  systemctl enable jellyfin.service
+  sudo systemctl enable jellyfin.service
 
   # Start the service
-  systemctl start jellyfin.service
+  sudo systemctl start jellyfin.service
 }
 
 setup_security() {
@@ -151,6 +206,22 @@ ethtool -s eth0 speed 1000 duplex full autoneg off
 }
 
 
+run_linux_tweaks() {
+
+#Faster Grub
+sudo sed -i 's/GRUB_TIMEOUT=[0-9]\+/GRUB_TIMEOUT=1/' /etc/default/grub && sudo update-grub
+
+# Enable zswap
+sudo sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT/ s/"$/ zswap.enabled=1"/' /etc/default/grub
+sudo update-grub
+
+#Disable Hyper-Thread Mitigations for more performance on Desktop and use zswap
+echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
+echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
+
+}
+
+
 # Main script
 echo "Starting script..."
 
@@ -165,6 +236,9 @@ run_nix_install
 #Sets the Nix Enviroment so it can be used and installs jellyfin
 run_nixjellyfin
 
+#Create and configure Jellyfin service account
+create_jellyfin_account
+
 #Create and start Jellyfin service
 create_jellyfin_service
 
@@ -177,4 +251,8 @@ setup_security
 #ConfigureLan & Static IP
 setup_lan
 
+#Set additional configuration optios
+run_linux_tweaks
+
 echo "Script finished."
+echo"#Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
