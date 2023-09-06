@@ -42,17 +42,16 @@ run_nala_installPackages() {
 
 run_nixjellyfin() {
   # Define the commands to be run
-  sudo mkdir -p /home/jellyfin
+  sudo mkdir -p /home/jellyfin/
   sudo chown jellyfin:leo /home/jellyfin
   cd /home/jellyfin
   
   sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
-  command1=". /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+  command1="sudo -u jellyfin /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
   command2="sudo -u jellyfin /nix/var/nix/profiles/default/bin/nix profile install nixpkgs#jellyfin profile install nixpkgs#jellyfin"
 
   # Run the commands
   eval "$command1"
-  sudo -u jellyfin bash
   eval "$command2"
 
 }
