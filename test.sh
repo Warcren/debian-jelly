@@ -203,7 +203,7 @@ setup_security() {
     sudo netstat -tunlp 
 }
 
-setup_lan() {
+etup_lan() {
 
 # Get the ethernet network interface name using ip command
 # Assume it is the first non-loopback interface
@@ -221,6 +221,9 @@ fi
 if grep -q "^iface $iface inet static" /etc/network/interfaces; then
   echo "The file already has an entry for iface $iface inet static"
 else
+  # Remove any existing DHCP configuration for the interface
+  sed -i "/^iface $iface inet dhcp/d" /etc/network/interfaces || { echo "Failed to remove DHCP configuration"; exit 1; }
+  # Add the static configuration for the interface
   echo "iface $iface inet static" >> /etc/network/interfaces || { echo "Failed to set iface $iface inet static"; exit 1; }
 fi
 
@@ -268,6 +271,7 @@ fi
 
 # Set additional settings for a 1Gbps Ethernet LAN using ethtool command
 ethtool -s $iface speed 1000 duplex full autoneg off
+
 }
 
 
