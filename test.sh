@@ -50,7 +50,7 @@ run_nala_installPackages() {
 	sudo apt-get update
 	
 	#Installing Packages with no interaction
-    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders
+    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders ethtool
 }
 
 configure_jellyfin_account() {
@@ -269,8 +269,26 @@ else
   sed -i "/^nameserver/c\nameserver 10.10.1.1" /etc/resolv.conf || { echo "Failed to set DNS address"; exit 1; }
 fi
 
-# Set additional settings for a 1Gbps Ethernet LAN using ethtool command
-ethtool -s $iface speed 1000 duplex full autoneg off
+# Get the ethernet network interface name using ip command
+# Assume it is the first non-loopback interface
+iface=$(ip -o link show | awk -F': ' '$2 != "lo" {print $2; exit}')
+
+# Get the supported speeds of the network interface
+supported_speeds=$(ethtool $iface | grep -oP '(?<=Supported link modes:   ).*')
+
+# Set the highest supported speed
+if [[ $supported_speeds == *"10000baseT/Full"* ]]; then
+  ethtool -s $iface speed 10000 duplex full autoneg off
+elif [[ $supported_speeds == *"1000baseT/Full"* ]]; then
+  ethtool -s $iface speed 1000 duplex full autoneg off
+elif [[ $supported_speeds == *"100baseT/Full"* ]]; then
+  ethtool -s $iface speed 100 duplex full autoneg off
+elif [[ $supported_speeds == *"10baseT/Full"* ]]; then
+  ethtool -s $iface speed 10 duplex full autoneg off
+else
+  echo "No supported full duplex speed found"
+fi
+
 
 }
 
