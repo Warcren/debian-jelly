@@ -50,7 +50,7 @@ run_nala_installPackages() {
 	sudo apt-get update
 	
 	#Installing Packages with no interaction
-    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders ethtool
+    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders ethtool udisks2 ntfs-3g htop libblockdev-mdraid2 policykit-1 
 }
 
 configure_jellyfin_account() {
