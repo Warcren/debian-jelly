@@ -222,7 +222,7 @@ if grep -q "^iface $iface inet static" /etc/network/interfaces; then
   echo "The file already has an entry for iface $iface inet static"
 else
   # Remove any existing DHCP configuration for the interface
-  sed -i "/^iface $iface inet dhcp/d" /etc/network/interfaces || { echo "Failed to remove DHCP configuration"; exit 1; }
+  awk "!/^iface $iface inet dhcp/" /etc/network/interfaces > temp && mv temp /etc/network/interfaces || { echo "Failed to remove DHCP configuration"; exit 1; }
   # Add the static configuration for the interface
   echo "iface $iface inet static" >> /etc/network/interfaces || { echo "Failed to set iface $iface inet static"; exit 1; }
 fi
@@ -232,7 +232,7 @@ if grep -q "^address 10.10.1.25" /etc/network/interfaces; then
   echo "The file already has an entry for address 10.10.1.25"
 else
   # Replace any existing address entry with the new one
-  sed -i "/^address/c\address 10.10.1.25" /etc/network/interfaces || { echo "Failed to set address"; exit 1; }
+  awk "{if (/^address/) print \"address 10.10.1.25\"; else print}" /etc/network/interfaces > temp && mv temp /etc/network/interfaces || { echo "Failed to set address"; exit 1; }
 fi
 
 # Check if the file already has an entry for the netmask
@@ -240,7 +240,7 @@ if grep -q "^netmask 255.255.255.0" /etc/network/interfaces; then
   echo "The file already has an entry for netmask 255.255.255.0"
 else
   # Replace any existing netmask entry with the new one
-  sed -i "/^netmask/c\netmask 255.255.255.0" /etc/network/interfaces || { echo "Failed to set netmask"; exit 1; }
+  awk "{if (/^netmask/) print \"netmask 255.255.255.0\"; else print}" /etc/network/interfaces > temp && mv temp /etc/network/interfaces || { echo "Failed to set netmask"; exit 1; }
 fi
 
 # Check if the file already has an entry for the gateway
@@ -248,7 +248,7 @@ if grep -q "^gateway 10.10.1.1" /etc/network/interfaces; then
   echo "The file already has an entry for gateway 10.10.1.1"
 else
   # Replace any existing gateway entry with the new one
-  sed -i "/^gateway/c\gateway 10.10.1.1" /etc/network/interfaces || { echo "Failed to set gateway"; exit 1; }
+  awk "{if (/^gateway/) print \"gateway 10.10.1.1\"; else print}" /etc/network/interfaces > temp && mv temp /etc/network/interfaces || { echo "Failed to set gateway"; exit 1; }
 fi
 
 # Set the primary DNS suffix with error checking
@@ -257,7 +257,7 @@ if grep -q "^search pfsense.home" /etc/resolv.conf; then
   echo "The file already has an entry for search pfsense.home"
 else
   # Replace any existing search domain entry with the new one
-  sed -i "/^search/c\search pfsense.home" /etc/resolv.conf || { echo "Failed to set primary DNS suffix"; exit 1; }
+  awk "{if (/^search/) print \"search pfsense.home\"; else print}" /etc/resolv.conf > temp && mv temp /etc/resolv.conf || { echo "Failed to set primary DNS suffix"; exit 1; }
 fi
 
 # Set the DNS address with error checking
@@ -266,8 +266,11 @@ if grep -q "^nameserver 10.10.1.1" /etc/resolv.conf; then
   echo "The file already has an entry for nameserver 10.10.1.1"
 else
   # Replace any existing nameserver entry with the new one
-  sed -i "/^nameserver/c\nameserver 10.10.1.1" /etc/resolv.conf || { echo "Failed to set DNS address"; exit 1; }
+  awk "{if (/^nameserver/) print \"nameserver 10.10.1.1\"; else print}" /etc/resolv.conf > temp && mv temp /etc/resolv.conf || { echo "Failed to set DNS address"; exit 1; }
 fi
+
+}
+
 
 # Get the ethernet network interface name using ip command
 # Assume it is the first non-loopback interface
