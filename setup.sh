@@ -6,6 +6,9 @@ if ! [ $(id -u) = 0 ]; then
   exit 1
 fi
 
+# Get the name of the main user account
+MAIN_USER=$(logname)
+
 # Get the username of the user who invoked sudo
 if [ "$SUDO_USER" ]; then
   username="$SUDO_USER"
@@ -16,9 +19,7 @@ fi
 # Get the home directory of the user
 homedir=$(getent passwd "$username" | cut -d: -f6)
 
-#Create Jellyfin Service Account
-sudo useradd -r -s /bin/false jellyfin
-sudo adduser jellyfin sudo
+
 
 # This function runs the 'sudo apt-get install -y nala' command and install nala on the OS
 run_nala_install() {
@@ -31,20 +32,20 @@ run_nala_install() {
 # This function runs the 'sudo nala fetch' command and sends the response '1 2 3 y' when prompted for input
 run_nala_fetch() {
     echo "Running 'sudo nala fetch' command..."
-    { echo "1 2 3"; echo "y"; } | sudo nala fetch
+    { echo "1 2 3 4"; echo "y"; } | sudo nala fetch
 }
 
 
 # This function runs the 'nala' command and installs several needed packages:
 run_nala_installPackages() {
     echo "Running 'sudo nala install -y xz-utils git curl nano debconf' command..."
-    sudo nala install -y xz-utils git curl nano debconf
+    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders
 }
 
 # This function installs NixPackages:
 run_nix_install() {
     echo "Running Nix Installation using  determinate.systems/nix installation command..."
-    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+    sudo curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
 
 }
 
@@ -60,26 +61,15 @@ run_nixjellyfin() {
 
 }
 
-run_securitypack() {
-  # Define the commands to be run
-  command1="sudo nala install -y ufw fail2ban net-tools iptables"
-
-  # Run the commands
-  eval "$command1"
-}
-
-
 configure_jellyfin_account() {
 
-#!/bin/bash
-
-# Install necessary packages
-sudo nala install -y vainfo i965-va-driver-shaders
+#Create Jellyfin Service Account
+sudo useradd -r -s /bin/false jellyfin
+sudo adduser jellyfin sudo
 
 # Add the Jellyfin user to the video group
 sudo usermod -aG video jellyfin
 
-sudo mkdir -p /etc/jellyfin/
 sudo touch /etc/jellyfin/encoding.xml
 
 # Enable VAAPI hardware acceleration for Jellyfin (requires Intel GPU)
@@ -111,6 +101,11 @@ sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
 sudo chown -R jellyfin:jellyfin /etc/jellyfin
 sudo chown -R jellyfin:jellyfin /usr/share/jellyfin
 sudo chown -R jellyfin:jellyfin /var/log/jellyfin
+
+#Grants access to the jellyfin service account on the user directory.
+sudo usermod -a -G $MAIN_USER jellyfin
+sudo chmod g+rwx /home/$MAIN_USER
+
 }
 
 create_jellyfin_service() {
@@ -223,7 +218,7 @@ echo "Starting script..."
 
 #Install Nala and Fetch best mirrors
 run_nala_install
-run_nala_fetch
+#run_nala_fetch
 
 #Install Additional Packages
 run_nala_installPackages
@@ -236,22 +231,19 @@ run_nixjellyfin
 configure_jellyfin_account
 
 #Create and start Jellyfin service
-create_jellyfin_service
-
-#Install Security packages
-run_securitypack
+#create_jellyfin_service
 
 #Hardens Server
-setup_security
+#setup_security
 
 #ConfigureLan & Static IP
-setup_lan
+#setup_lan
 
 #Set additional configuration optios
-run_linux_tweaks
+#run_linux_tweaks
 
 # Remove jellyfin from the sudoers group
-sudo deluser jellyfin sudo
+#sudo deluser jellyfin sudo
 
 echo "Script finished."
 echo "Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
