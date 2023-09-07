@@ -284,10 +284,6 @@ sudo update-grub
 echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
 echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
 
-# Disable unnecessary services
-sudo systemctl disable bluetooth.service #If you don't use bluetooth
-sudo systemctl disable cups.service #If you don't use printer
-sudo systemctl disable avahi-daemon.service #If you don't use network discovery
 }
 
 # Main script
