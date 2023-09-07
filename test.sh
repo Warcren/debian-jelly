@@ -1,7 +1,5 @@
 #!/bin/bash
 
-EUID=$(id -u)
-
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then
   echo "This script must run with sudo, try again..."
@@ -114,8 +112,8 @@ sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 run_nix_install() {
 
     echo "Running Nix Installation using  determinate.systems/nix installation command..."
-    # Use the --no-daemon option to avoid creating a separate user for nix
-    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm --no-daemon
+    # Installing Nix Using the Determinate Systems Script
+    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
 
 }
 
