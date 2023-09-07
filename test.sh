@@ -203,7 +203,7 @@ setup_security() {
     sudo netstat -tunlp 
 }
 
-etup_lan() {
+setup_lan() {
 
 # Get the ethernet network interface name using ip command
 # Assume it is the first non-loopback interface
