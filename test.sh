@@ -269,9 +269,6 @@ else
   awk "{if (/^nameserver/) print \"nameserver 10.10.1.1\"; else print}" /etc/resolv.conf > temp && mv temp /etc/resolv.conf || { echo "Failed to set DNS address"; exit 1; }
 fi
 
-}
-
-
 # Get the ethernet network interface name using ip command
 # Assume it is the first non-loopback interface
 iface=$(ip -o link show | awk -F': ' '$2 != "lo" {print $2; exit}')
