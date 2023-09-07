@@ -65,6 +65,7 @@ sudo chown -R jellyfin:jellyfin /home/jellyfin/
 groups jellyfin | grep -q video || sudo usermod -aG video jellyfin
 
 #Create encoding file if not already exists
+[ -d /etc/jellyfin/ ] || sudo mkdir -p /etc/jellyfin/
 [ -f /etc/jellyfin/encoding.xml ] || sudo touch /etc/jellyfin/encoding.xml
 
 # Enable VAAPI hardware acceleration for Jellyfin (requires Intel GPU)
@@ -93,10 +94,10 @@ grep -qxF "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" /etc/je
 
 
 #Create Jellyfin files if not already exists
-[ -f /var/lib/jellyfin ] || sudo touch /var/lib/jellyfin
-[ -f /etc/jellyfin ] || sudo touch /etc/jellyfin
-[ -f /usr/share/jellyfin ] || sudo touch /usr/share/jellyfin
-[ -f /var/log/jellyfin ] || sudo touch /var/log/jellyfin
+[ -d /var/lib/jellyfin ] || sudo mkdir -p /var/lib/jellyfin
+[ -d /etc/jellyfin ] || sudo mkdir -p /etc/jellyfin
+[ -d /usr/share/jellyfin ] || sudo mkdir -p /usr/share/jellyfin
+[ -d /var/log/jellyfin ] || sudo mkdir -p /var/log/jellyfin
 
 # Set ownership of Jellyfin files to jellyfin user
 sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
