@@ -1,3 +1,6 @@
+#!/bin/bash
+
+EUID=$(id -u)
 
 # Check if the script is running as root
 if [ "$EUID" -ne 0 ]; then
