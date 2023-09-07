@@ -1,7 +1,6 @@
-#!/bin/bash
 
-## check for sudo/root
-if ! [ $(id -u) = 0 ]; then
+# Check if the script is running as root
+if [ "$EUID" -ne 0 ]; then
   echo "This script must run with sudo, try again..."
   exit 1
 fi
@@ -10,92 +9,94 @@ fi
 MAIN_USER=$(logname)
 
 # Get the username of the user who invoked sudo
-if [ "$SUDO_USER" ]; then
-  username="$SUDO_USER"
-else
-  username="$(whoami)"
-fi
+username="$SUDO_USER"
 
 # Get the home directory of the user
 homedir=$(getent passwd "$username" | cut -d: -f6)
-
-
 
 # This function runs the 'sudo apt-get install -y nala' command and install nala on the OS
 run_nala_install() {
 	
     echo "Running 'sudo apt-get install -y nala' command..."
-    sudo apt update && sudo apt upgrade
+    # Update the package index and upgrade the installed packages
+    sudo apt update && sudo apt upgrade -y
+    # Install nala with no interaction
     sudo apt-get install -y nala
 }
 
 # This function runs the 'sudo nala fetch' command and sends the response '1 2 3 y' when prompted for input
 run_nala_fetch() {
     echo "Running 'sudo nala fetch' command..."
-    { echo "1 2 3 4"; echo "y"; } | sudo nala fetch
+    # Use expect to automate the input for nala fetch
+    expect -c "
+    spawn sudo nala fetch
+    expect \"Enter your choice:\"
+    send \"1 2 3 4\r\"
+    expect \"Are you sure?\"
+    send \"y\r\"
+    expect eof
+    "
 }
-
 
 # This function runs the 'nala' command and installs several needed packages:
 
 run_nala_installPackages() {
 
-	# Add the non-free repository to the sources.list file
-	echo "deb http://deb.debian.org/debian buster main non-free" | sudo tee -a /etc/apt/sources.list
+	# Add the non-free repository to the sources.list file if not already present
+	grep -qxF "deb http://deb.debian.org/debian buster main non-free" /etc/apt/sources.list || echo "deb http://deb.debian.org/debian buster main non-free" | sudo tee -a /etc/apt/sources.list
 
 	# Update the package index
 	sudo apt-get update
 	
-	#Installing Packages
+	#Installing Packages with no interaction
     sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders
 }
 
 configure_jellyfin_account() {
 
-#Create Jellyfin Service Account
-sudo useradd -r -s /bin/false jellyfin
+#Create Jellyfin Service Account if not already exists
+id -u jellyfin &>/dev/null || sudo useradd -r -s /bin/false jellyfin
 
-#Define a Home Directory
-sudo mkdir -p /home/jellyfin/
+#Define a Home Directory if not already exists
+[ -d /home/jellyfin/ ] || sudo mkdir -p /home/jellyfin/
 sudo chown -R jellyfin:jellyfin /home/jellyfin/
 
-# Add the Jellyfin user to the video group
-sudo usermod -aG video jellyfin
+# Add the Jellyfin user to the video group if not already in it
+groups jellyfin | grep -q video || sudo usermod -aG video jellyfin
 
-#Create encoding file
-sudo mkdir -p /etc/jellyfin/
-sudo touch /etc/jellyfin/encoding.xml
+#Create encoding file if not already exists
+[ -f /etc/jellyfin/encoding.xml ] || sudo touch /etc/jellyfin/encoding.xml
 
 # Enable VAAPI hardware acceleration for Jellyfin (requires Intel GPU)
-echo "hardwareAcceleration.enableVAAPI = true" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.enableVAAPI = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.enableVAAPI = true" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Define the device path for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Define the driver type for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Drop advanced subtitles for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Define the output format for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Allow hwaccel transcoding for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Allow hwaccel decoder for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
 
 # Allow hwaccel encoder for VAAPI (requires Intel GPU)
-echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
+grep -qxF "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
 
 
-#Create Jellyfin files
-sudo touch /var/lib/jellyfin
-sudo touch /etc/jellyfin
-sudo touch /usr/share/jellyfin
-sudo touch /var/log/jellyfin
+#Create Jellyfin files if not already exists
+[ -f /var/lib/jellyfin ] || sudo touch /var/lib/jellyfin
+[ -f /etc/jellyfin ] || sudo touch /etc/jellyfin
+[ -f /usr/share/jellyfin ] || sudo touch /usr/share/jellyfin
+[ -f /var/log/jellyfin ] || sudo touch /var/log/jellyfin
 
 # Set ownership of Jellyfin files to jellyfin user
 sudo chown -R jellyfin:jellyfin /var/lib/jellyfin
@@ -109,7 +110,8 @@ sudo chown -R jellyfin:jellyfin /var/log/jellyfin
 run_nix_install() {
 
     echo "Running Nix Installation using  determinate.systems/nix installation command..."
-    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+    # Use the --no-daemon option to avoid creating a separate user for nix
+    sudo -u jellyfin curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm --no-daemon
 
 }
 
@@ -117,11 +119,11 @@ run_nixjellyfin() {
   
   # Define the commands to be run
   command1="sudo -u jellyfin /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
-  command2="sudo -u jellyfin /nix/var/nix/profiles/default/bin/nix profile install nixpkgs#jellyfin profile install nixpkgs#jellyfin"
+  command2="sudo -u jellyfin /nix/var/nix/profiles/default/bin/nix profile install nixpkgs#jellyfin"
 
-  # Run the commands
-  eval "$command1"
-  eval "$command2"
+  # Run the commands with error checking
+  eval "$command1" || { echo "Failed to run $command1"; exit 1; }
+  eval "$command2" || { echo "Failed to run $command2"; exit 1; }
   
 }
 
@@ -136,15 +138,15 @@ After=network.target
 User=jellyfin
 Group=jellyfin
 WorkingDirectory=/home/jellyfin/
-ExecStart=ExecStart=/bin/bash -c 'export HOME=$(getent passwd $USER | cut -d: -f6); exec $HOME/.nix-profile/bin/jellyfin'
+ExecStart=/home/jellyfin/.nix-profile/bin/jellyfin
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target'
 
-  # Create the service file
-  echo "$service_code" > /etc/systemd/system/jellyfin.service
+  # Create the service file with error checking
+  echo "$service_code" > /etc/systemd/system/jellyfin.service || { echo "Failed to create service file"; exit 1; }
 
   # Reload the systemd daemon to recognize the new service
   sudo systemctl daemon-reload
@@ -174,8 +176,14 @@ setup_security() {
     sudo sysctl -a
     sudo sysctl -A
     sudo sysctl mib
-    sudo sysctl net.ipv4.conf.all.rp_filter
-    sudo sysctl -a --pattern 'net.ipv4.conf.(eth|wlan)0.arp'
+    sudo sysctl net.ipv4.conf.all.rp_filter=1 #Enable source validation by reversed path (RFC1812)
+    sudo sysctl net.ipv4.conf.all.accept_redirects=0 #Disable ICMP redirect acceptance (RFC1122)
+    sudo sysctl net.ipv4.conf.all.send_redirects=0 #Disable ICMP redirect sending (RFC1122)
+    sudo sysctl net.ipv4.conf.all.accept_source_route=0 #Disable IP source routing (RFC1812)
+    sudo sysctl net.ipv4.conf.all.log_martians=1 #Log packets with impossible addresses (RFC1812)
+    sudo sysctl net.ipv4.tcp_syncookies=1 #Enable TCP SYN cookies (RFC4987)
+    sudo sysctl net.ipv4.icmp_echo_ignore_broadcasts=1 #Ignore ICMP broadcasts (RFC1122)
+    sudo sysctl net.ipv4.icmp_ignore_bogus_error_responses=1 #Ignore bogus ICMP errors (RFC1122)
 
     # PREVENT IP SPOOFS
     sudo bash -c 'echo -e "order bind,hosts\nmulti on" > /etc/host.conf'
@@ -195,21 +203,69 @@ setup_security() {
 
 setup_lan() {
 
-# Set the static IP address
-echo "auto eth0" >> /etc/network/interfaces
-echo "iface eth0 inet static" >> /etc/network/interfaces
-echo "address 10.10.1.25" >> /etc/network/interfaces
-echo "netmask 255.255.255.0" >> /etc/network/interfaces
-echo "gateway 10.10.1.1" >> /etc/network/interfaces
+# Get the ethernet network interface name using ip command
+# Assume it is the first non-loopback interface
+iface=$(ip -o link show | awk -F': ' '$2 != "lo" {print $2; exit}')
 
-# Set the primary DNS suffix
-echo "search pfsense.home" >> /etc/resolv.conf
+# Set the static IP address with error checking
+# Check if the file already has an entry for the interface
+if grep -q "^auto $iface" /etc/network/interfaces; then
+  echo "The file already has an entry for auto $iface"
+else
+  echo "auto $iface" >> /etc/network/interfaces || { echo "Failed to set auto $iface"; exit 1; }
+fi
 
-# Set the DNS address
-echo "nameserver 10.10.1.1" >> /etc/resolv.conf
+# Check if the file already has an entry for the static configuration
+if grep -q "^iface $iface inet static" /etc/network/interfaces; then
+  echo "The file already has an entry for iface $iface inet static"
+else
+  echo "iface $iface inet static" >> /etc/network/interfaces || { echo "Failed to set iface $iface inet static"; exit 1; }
+fi
 
-# Set additional settings for a 1Gbps Ethernet LAN
-ethtool -s eth0 speed 1000 duplex full autoneg off
+# Check if the file already has an entry for the address
+if grep -q "^address 10.10.1.25" /etc/network/interfaces; then
+  echo "The file already has an entry for address 10.10.1.25"
+else
+  # Replace any existing address entry with the new one
+  sed -i "/^address/c\address 10.10.1.25" /etc/network/interfaces || { echo "Failed to set address"; exit 1; }
+fi
+
+# Check if the file already has an entry for the netmask
+if grep -q "^netmask 255.255.255.0" /etc/network/interfaces; then
+  echo "The file already has an entry for netmask 255.255.255.0"
+else
+  # Replace any existing netmask entry with the new one
+  sed -i "/^netmask/c\netmask 255.255.255.0" /etc/network/interfaces || { echo "Failed to set netmask"; exit 1; }
+fi
+
+# Check if the file already has an entry for the gateway
+if grep -q "^gateway 10.10.1.1" /etc/network/interfaces; then
+  echo "The file already has an entry for gateway 10.10.1.1"
+else
+  # Replace any existing gateway entry with the new one
+  sed -i "/^gateway/c\gateway 10.10.1.1" /etc/network/interfaces || { echo "Failed to set gateway"; exit 1; }
+fi
+
+# Set the primary DNS suffix with error checking
+# Check if the file already has an entry for the search domain
+if grep -q "^search pfsense.home" /etc/resolv.conf; then
+  echo "The file already has an entry for search pfsense.home"
+else
+  # Replace any existing search domain entry with the new one
+  sed -i "/^search/c\search pfsense.home" /etc/resolv.conf || { echo "Failed to set primary DNS suffix"; exit 1; }
+fi
+
+# Set the DNS address with error checking
+# Check if the file already has an entry for the nameserver
+if grep -q "^nameserver 10.10.1.1" /etc/resolv.conf; then
+  echo "The file already has an entry for nameserver 10.10.1.1"
+else
+  # Replace any existing nameserver entry with the new one
+  sed -i "/^nameserver/c\nameserver 10.10.1.1" /etc/resolv.conf || { echo "Failed to set DNS address"; exit 1; }
+fi
+
+# Set additional settings for a 1Gbps Ethernet LAN using ethtool command
+ethtool -s $iface speed 1000 duplex full autoneg off
 }
 
 
@@ -225,8 +281,12 @@ sudo update-grub
 #Disable Hyper-Thread Mitigations for more performance on Desktop and use zswap
 echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
 echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
-}
 
+# Disable unnecessary services
+sudo systemctl disable bluetooth.service #If you don't use bluetooth
+sudo systemctl disable cups.service #If you don't use printer
+sudo systemctl disable avahi-daemon.service #If you don't use network discovery
+}
 
 # Main script
 echo "Starting script..."
@@ -249,16 +309,14 @@ run_nixjellyfin
 create_jellyfin_service
 
 #Hardens Server
-#setup_security
+setup_security
 
 #ConfigureLan & Static IP
-#setup_lan
+setup_lan
 
 #Set additional configuration optios
-#run_linux_tweaks
+run_linux_tweaks
 
-# Remove jellyfin from the sudoers group
-#sudo deluser jellyfin sudo
-
+#The End
 echo "Script finished."
 echo "Check /etc/network/interfaces and /etc/resolv.conf for any network mismatches."
