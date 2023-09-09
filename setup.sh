@@ -69,31 +69,6 @@ groups jellyfin | grep -q video || sudo usermod -aG video jellyfin
 [ -d /etc/jellyfin/ ] || sudo mkdir -p /etc/jellyfin/
 [ -f /etc/jellyfin/encoding.xml ] || sudo touch /etc/jellyfin/encoding.xml
 
-# Enable VAAPI hardware acceleration for Jellyfin (requires Intel GPU)
-grep -qxF "hardwareAcceleration.enableVAAPI = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.enableVAAPI = true" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Define the device path for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDevicePath = \"/dev/dri/renderD128\"" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Define the driver type for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDriverTypeOverride = \"i965\"" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Drop advanced subtitles for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiDropAdvancedSubtitlesOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Define the output format for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiHwaccelOutputFormatOverride = \"vaapi_vld\"" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Allow hwaccel transcoding for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelTranscodingOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Allow hwaccel decoder for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelDecoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
-
-# Allow hwaccel encoder for VAAPI (requires Intel GPU)
-grep -qxF "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" /etc/jellyfin/encoding.xml || echo "hardwareAcceleration.vaapiAllowHwaccelEncoderOverride = true" | sudo tee -a /etc/jellyfin/encoding.xml
-
-
 #Create Jellyfin files if not already exists
 [ -d /var/lib/jellyfin ] || sudo mkdir -p /var/lib/jellyfin
 [ -d /etc/jellyfin ] || sudo mkdir -p /etc/jellyfin
