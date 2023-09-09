@@ -50,7 +50,7 @@ run_nala_installPackages() {
 	sudo apt-get update
 	
 	#Installing Packages with no interaction
-    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders ethtool udisks2 ntfs-3g htop libblockdev-mdraid2 policykit-1 
+    sudo nala install -y xz-utils git curl nano debconf ufw fail2ban net-tools iptables vainfo i965-va-driver-shaders ethtool udisks2 ntfs-3g htop libblockdev-mdraid2 policykit-1 pm-utils ethtool
 }
 
 configure_jellyfin_account() {
@@ -263,6 +263,18 @@ echo "kernel.nosmt = 1" | sudo tee -a /etc/sysctl.conf
 
 }
 
+run_hibernate() {
+
+#This script modifies the /etc/systemd/logind.conf file to change the default behavior of the system 
+#when it is idle. The HandleLidSwitch option is set to hibernate to ensure that the system hibernates when the lid is closed. 
+#The IdleAction option is set to hibernate to ensure that the system hibernates when it is idle for 15 minutes.
+
+sudo sed -i 's/#HandleLidSwitch=suspend/HandleLidSwitch=hibernate/g' /etc/systemd/logind.conf
+sudo sed -i 's/#IdleAction=ignore/IdleAction=hibernate/g' /etc/systemd/logind.conf
+sudo systemctl restart systemd-logind.service
+
+}
+
 # Main script
 echo "Starting script..."
 
@@ -291,6 +303,9 @@ setup_lan
 
 #Set additional configuration optios
 run_linux_tweaks
+
+#Enables Server Hibernation when not in use to save power.
+run_hibernate
 
 #The End
 echo "Script finished."
